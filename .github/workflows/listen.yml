@@ -102,10 +102,10 @@ jobs:
       version: ${{ needs.check-for-releases.outputs.version }}
     secrets: inherit
 
-  # build:
-  #   needs: check-for-releases
-  #   if: needs.check-for-releases.outputs.updated == 'true'
-  #   uses: ./.github/workflows/build.yml
-  #   with:
-  #     version: ${{ needs.check-for-releases.outputs.version }}
-  #   secrets: inherit
+  build:
+    needs: check-for-releases
+    if: needs.check-for-releases.outputs.updated == 'true'
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.check-for-releases.outputs.version }}
+    secrets: inherit

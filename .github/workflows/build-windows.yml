@@ -22,14 +22,14 @@ on:
 
 jobs:
   build-windows-dll:
-    runs-on: ${{ matrix.arch == 'arm64' && format('{0}-{1}', matrix.os, matrix.arch) || matrix.os }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
         include:
-          - os: windows
+          - runner: windows-latest
             arch: amd64
             llvm_mingw_arch: x86_64
-          - os: windows
+          - runner: windows-11-arm
             arch: arm64
             llvm_mingw_arch: aarch64
     steps:
