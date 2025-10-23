@@ -1,0 +1,111 @@
+name: listen
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: '0 */8 * * *'
+  push:
+    branches:
+      - "master"
+    paths:
+      - ".github/workflows/listen.yml"
+  workflow_dispatch:
+
+jobs:
+  check-for-releases:
+    runs-on: ubuntu-latest
+    outputs:
+      updated: ${{ steps.check-releases.outputs.updated }}
+      version: ${{ steps.check-releases.outputs.latest }}
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v5
+
+      - name: Restore previous release version
+        id: cache-release
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.upstream-cache
+          key: upstream-release-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            upstream-release-${{ runner.os }}-
+
+      - name: Initialize cache if needed
+        if: steps.cache-release.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.upstream-cache
+          echo "initial" > ~/.upstream-cache/release-version
+
+      - name: Read previous release
+        id: prev-release
+        run: |
+          PREVIOUS_VERSION=$(cat ~/.upstream-cache/release-version)
+          echo "previous=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
+          echo "Previous release version: $PREVIOUS_VERSION"
+
+      - name: Check for upstream releases
+        id: check-releases
+        run: |
+          RELEASE_INFO=$(curl -s https://api.github.com/repos/${{ secrets.UPSTREAM_REPO }}/releases/latest)
+          LATEST_VERSION=$(echo "$RELEASE_INFO" | jq -r .tag_name)
+          RELEASE_NAME=$(echo "$RELEASE_INFO" | jq -r .name)
+          RELEASE_URL=$(echo "$RELEASE_INFO" | jq -r .html_url)
+          RELEASE_DATE=$(echo "$RELEASE_INFO" | jq -r .published_at)
+
+          echo "latest=$LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+          echo "url=$RELEASE_URL" >> $GITHUB_OUTPUT
+          echo "date=$RELEASE_DATE" >> $GITHUB_OUTPUT
+          echo "Latest release: $LATEST_VERSION ($RELEASE_NAME)"
+          echo "Released on: $RELEASE_DATE"
+
+          if [ "$LATEST_VERSION" != "${{ steps.prev-release.outputs.previous }}" ]; then
+            echo "New release detected in ${{ secrets.UPSTREAM_REPO }} repository!"
+            echo "updated=true" >> $GITHUB_OUTPUT
+            echo "$LATEST_VERSION" > ~/.upstream-cache/release-version
+          else
+            echo "No new releases detected in ${{ secrets.UPSTREAM_REPO }} repository."
+            echo "updated=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log release details
+        if: steps.check-releases.outputs.updated == 'true'
+        run: |
+          echo "New release detected: ${{ steps.check-releases.outputs.latest }}"
+          echo "Release name: ${{ steps.check-releases.outputs.name }}"
+          echo "Release URL: ${{ steps.check-releases.outputs.url }}"
+          echo "Released on: ${{ steps.check-releases.outputs.date }}"
+
+      - name: Update cache
+        if: steps.check-releases.outputs.updated == 'true'
+        run: |
+          echo "${{ steps.check-releases.outputs.latest }}" > ~/.upstream-cache/release-version
+          echo "Cache updated with version ${{ steps.check-releases.outputs.latest }}"
+
+      - name: Save updated cache
+        if: steps.check-releases.outputs.updated == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.upstream-cache
+          key: upstream-release-${{ runner.os }}-${{ github.run_id }}
+
+  build-windows:
+    needs: check-for-releases
+    if: needs.check-for-releases.outputs.updated == 'true'
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      version: ${{ needs.check-for-releases.outputs.version }}
+    secrets: inherit
+
+  # build:
+  #   needs: check-for-releases
+  #   if: needs.check-for-releases.outputs.updated == 'true'
+  #   uses: ./.github/workflows/build.yml
+  #   with:
+  #     version: ${{ needs.check-for-releases.outputs.version }}
+  #   secrets: inherit

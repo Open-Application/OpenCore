@@ -1,0 +1,127 @@
+name: build-windows
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+permissions:
+  contents: write
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: 'Version to build'
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: 'Version to build (e.g., v0.0.1)'
+
+jobs:
+  build-windows-dll:
+    runs-on: ${{ matrix.arch == 'arm64' && format('{0}-{1}', matrix.os, matrix.arch) || matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows
+            arch: amd64
+            llvm_mingw_arch: x86_64
+          - os: windows
+            arch: arm64
+            llvm_mingw_arch: aarch64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ^1.25.3
+
+      - name: Setup llvm-mingw
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $llvmMingwVersion = "20240619"
+          $url = "https://github.com/mstorsjo/llvm-mingw/releases/download/${llvmMingwVersion}/llvm-mingw-${llvmMingwVersion}-ucrt-${{ matrix.llvm_mingw_arch }}.zip"
+
+          Write-Host "Downloading llvm-mingw from $url"
+          Invoke-WebRequest -Uri $url -OutFile "${{ runner.temp }}\llvm-mingw-ucrt.zip"
+
+          Write-Host "Extracting to C:\Program Files\"
+          Expand-Archive -Path "${{ runner.temp }}\llvm-mingw-ucrt.zip" -DestinationPath "C:\Program Files\"
+
+          $installPath = (Resolve-Path -Path "C:\Program Files\llvm-mingw-*-ucrt*").Path
+          Write-Host "llvm-mingw installed to: $installPath"
+          echo "$installPath\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          & "$installPath\bin\${{ matrix.llvm_mingw_arch }}-w64-mingw32-gcc.exe" --version
+
+      - name: Set build environment
+        shell: bash
+        run: |
+          set -xeuo pipefail
+          TAGS="with_gvisor,with_quic,with_wireguard,with_utls,with_low_memory,with_conntrack,with_clash_api"
+          echo "BUILD_TAGS=${TAGS}" >> "${GITHUB_ENV}"
+          echo "BUILD_VERSION=${{ inputs.version }}" >> "${GITHUB_ENV}"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          go mod tidy
+
+      - name: Build Windows ${{ matrix.arch }} DLL
+        shell: bash
+        run: |
+          set -xeuo pipefail
+          cd export
+
+          LDFLAGS="-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0"
+
+          export CC="${{ matrix.llvm_mingw_arch }}-w64-mingw32-gcc"
+          export CXX="${{ matrix.llvm_mingw_arch }}-w64-mingw32-g++"
+
+          CGO_ENABLED=1 \
+          GOOS=windows \
+          GOARCH=${{ matrix.arch }} \
+          go build -v \
+            -buildmode=c-shared \
+            -tags="${BUILD_TAGS}" \
+            -trimpath \
+            -ldflags="${LDFLAGS}" \
+            -o liboc-${{ matrix.arch }}.dll \
+            ./ffi.go
+
+          ls -lh liboc-${{ matrix.arch }}.dll liboc-${{ matrix.arch }}.h
+
+      - name: Compress Windows library
+        shell: bash
+        run: |
+          cd export
+          powershell -Command "Compress-Archive -Path liboc-${{ matrix.arch }}.dll,liboc-${{ matrix.arch }}.h -DestinationPath liboc-windows-${{ matrix.arch }}-${{ inputs.version }}.zip"
+          mv liboc-windows-${{ matrix.arch }}-${{ inputs.version }}.zip ..
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: Release ${{ inputs.version }}
+          draft: false
+          prerelease: false
+          overwrite_files: true
+          files: |
+            liboc-windows-${{ matrix.arch }}-${{ inputs.version }}.zip
+          body: |
+            ## Windows Library for ${{ inputs.version }}
+
+            ### Build Configuration
+            - **Tags**: `${{ env.BUILD_TAGS }}`
+            - **Architecture**: ${{ matrix.arch }}
+            - **Format**: C shared library (DLL)
+
+            ### Installation
+            Download and extract the zip file to get liboc.dll and liboc.h

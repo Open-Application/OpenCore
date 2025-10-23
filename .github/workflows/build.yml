@@ -1,0 +1,159 @@
+name: build
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+permissions:
+  contents: write
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: 'Version to build'
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: 'Version to build (e.g., v1.10.0)'
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ^1.25.3
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set build environment
+        run: |
+          set -xeuo pipefail
+          TAGS="with_gvisor,with_quic,with_wireguard,with_utls,with_low_memory,with_conntrack,with_clash_api"
+          echo "BUILD_TAGS=${TAGS}" >> "${GITHUB_ENV}"
+          echo "BUILD_VERSION=${{ inputs.version }}" >> "${GITHUB_ENV}"
+          echo "${JAVA_HOME}"
+          echo "${ANDROID_NDK_HOME}"
+
+      - name: Install dependencies
+        run: |
+          go clean -modcache -cache
+          go mod tidy
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go get golang.org/x/mobile/bind
+          gomobile init
+
+      - name: Build Android library
+        run: |
+          gomobile bind -v \
+            -target android \
+            -androidapi 21 \
+            -javapkg=io.rootcorporation \
+            -o liboc.aar \
+            -trimpath \
+            -ldflags "-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0" \
+            -tags "${BUILD_TAGS}" \
+            .
+
+      - name: Compress Android library
+        run: |
+          tar -czf liboc-android-universal-${{ inputs.version }}.tar.gz ./liboc.aar
+          echo "ASSET_PATH=$(pwd)/liboc-android-universal-${{ inputs.version }}.tar.gz" >> $GITHUB_ENV
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: Release ${{ inputs.version }}
+          draft: false
+          prerelease: false
+          overwrite_files: true
+          files: |
+            ${{ env.ASSET_PATH }}
+          body: |
+            ## Android Library for ${{ inputs.version }}
+
+            ### Build Configuration
+            - **Tags**: `${{ env.BUILD_TAGS }}`
+            - **Min API**: 21
+            - **Package**: io.openapplication.liboc
+
+            ### Installation
+            Download and extract the tar.gz file to get the liboc.aar
+
+  build-apple:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ^1.25.3
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Set build environment
+        run: |
+          set -xeuo pipefail
+          TAGS="with_gvisor,with_quic,with_wireguard,with_utls,with_low_memory,with_conntrack,with_clash_api"
+          echo "BUILD_TAGS=${TAGS}" >> "${GITHUB_ENV}"
+          echo "BUILD_VERSION=${{ inputs.version }}" >> "${GITHUB_ENV}"
+
+      - name: Install dependencies
+        run: |
+          go clean -modcache -cache
+          go mod tidy
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go get golang.org/x/mobile/bind
+          gomobile init
+
+      - name: Build iOS/macOS xcframework
+        run: |
+          gomobile bind -v \
+            -target ios,iossimulator,macos \
+            -iosversion 13.0 \
+            -o Liboc.xcframework \
+            -trimpath \
+            -ldflags "-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0" \
+            -tags "${BUILD_TAGS}" \
+            .
+
+      - name: Compress xcframework
+        run: |
+          zip -r liboc-apple-universal-${{ inputs.version }}.zip ./Liboc.xcframework
+          echo "ASSET_PATH=$(pwd)/liboc-apple-universal-${{ inputs.version }}.zip" >> $GITHUB_ENV
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: Release ${{ inputs.version }}
+          draft: false
+          prerelease: false
+          overwrite_files: true
+          files: |
+            ${{ env.ASSET_PATH }}
+          body: |
+            ## iOS/macOS Framework for ${{ inputs.version }}
+
+            ### Build Configuration
+            - **Tags**: `${{ env.BUILD_TAGS }}`
+            - **Platforms**: iOS (arm64), iOS Simulator (arm64/x86_64), macOS (arm64/x86_64)
+            - **Min iOS Version**: 13.0
+
+            ### Installation
+            Download and extract the zip file to get Liboc.xcframework
