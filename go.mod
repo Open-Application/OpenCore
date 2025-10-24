@@ -1,4 +1,4 @@
-module Open-Application/OpenCore
+module github.com/Open-Application/OpenCore
 
 go 1.25.3
 

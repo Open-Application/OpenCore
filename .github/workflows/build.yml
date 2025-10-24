@@ -85,10 +85,6 @@ jobs:
             ### Build Configuration
             - **Tags**: `${{ env.BUILD_TAGS }}`
             - **Min API**: 21
-            - **Package**: io.openapplication.liboc
-
-            ### Installation
-            Download and extract the tar.gz file to get the liboc.aar
 
   build-apple:
     runs-on: macos-latest
@@ -134,8 +130,8 @@ jobs:
 
       - name: Compress xcframework
         run: |
-          zip -r liboc-apple-universal-${{ inputs.version }}.zip ./Liboc.xcframework
-          echo "ASSET_PATH=$(pwd)/liboc-apple-universal-${{ inputs.version }}.zip" >> $GITHUB_ENV
+          tar -czf liboc-apple-universal-${{ inputs.version }}.tar.gz ./Liboc.xcframework
+          echo "ASSET_PATH=$(pwd)/liboc-apple-universal-${{ inputs.version }}.tar.gz" >> $GITHUB_ENV
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
@@ -154,6 +150,3 @@ jobs:
             - **Tags**: `${{ env.BUILD_TAGS }}`
             - **Platforms**: iOS (arm64), iOS Simulator (arm64/x86_64), macOS (arm64/x86_64)
             - **Min iOS Version**: 13.0
-
-            ### Installation
-            Download and extract the zip file to get Liboc.xcframework
