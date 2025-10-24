@@ -93,17 +93,16 @@ jobs:
             -tags="${BUILD_TAGS}" \
             -trimpath \
             -ldflags="${LDFLAGS}" \
-            -o liboc-${{ matrix.arch }}.dll \
+            -o liboc.dll \
             ./ffi.go
 
-          ls -lh liboc-${{ matrix.arch }}.dll liboc-${{ matrix.arch }}.h
+          ls -lh liboc.dll liboc.h
 
       - name: Compress Windows library
         shell: bash
         run: |
           cd export
-          powershell -Command "Compress-Archive -Path liboc-${{ matrix.arch }}.dll,liboc-${{ matrix.arch }}.h -DestinationPath liboc-windows-${{ matrix.arch }}-${{ inputs.version }}.zip"
-          mv liboc-windows-${{ matrix.arch }}-${{ inputs.version }}.zip ..
+          powershell -Command "Compress-Archive -Path liboc.dll,liboc.h -DestinationPath ../liboc-windows-${{ matrix.arch }}-${{ inputs.version }}.zip"
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
