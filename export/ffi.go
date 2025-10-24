@@ -58,7 +58,7 @@ import (
 	"sync"
 	"unsafe"
 
-	liboc "Open-Application/OpenCore"
+	liboc "github.com/Open-Application/OpenCore"
 	"github.com/sagernet/sing-box"
 	"github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing-box/option"
