@@ -22,16 +22,7 @@ on:
 
 jobs:
   build-windows-dll:
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      matrix:
-        include:
-          - runner: windows-latest
-            arch: amd64
-            build_arch: x86_64
-          - runner: windows-11-arm
-            arch: arm64
-            build_arch: aarch64
+    runs-on: windows-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -47,7 +38,7 @@ jobs:
           $ErrorActionPreference = "Stop"
 
           $llvmMingwVersion = "20240619"
-          $url = "https://github.com/mstorsjo/llvm-mingw/releases/download/${llvmMingwVersion}/llvm-mingw-${llvmMingwVersion}-ucrt-${{ matrix.build_arch }}.zip"
+          $url = "https://github.com/mstorsjo/llvm-mingw/releases/download/${llvmMingwVersion}/llvm-mingw-${llvmMingwVersion}-ucrt-x86_64.zip"
 
           Write-Host "Downloading llvm-mingw from $url"
           Invoke-WebRequest -Uri $url -OutFile "${{ runner.temp }}\llvm-mingw-ucrt.zip"
@@ -59,7 +50,7 @@ jobs:
           Write-Host "llvm-mingw installed to: $installPath"
           echo "$installPath\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-          & "$installPath\bin\${{ matrix.build_arch }}-w64-mingw32-gcc.exe" --version
+          & "$installPath\bin\x86_64-w64-mingw32-gcc.exe" --version
 
       - name: Set build environment
         shell: bash
@@ -74,7 +65,7 @@ jobs:
         run: |
           go mod tidy
 
-      - name: Build Windows ${{ matrix.arch }} DLL
+      - name: Build Windows amd64 DLL
         shell: bash
         run: |
           set -xeuo pipefail
@@ -82,12 +73,12 @@ jobs:
 
           LDFLAGS="-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0"
 
-          export CC="${{ matrix.build_arch }}-w64-mingw32-gcc"
-          export CXX="${{ matrix.build_arch }}-w64-mingw32-g++"
+          export CC="x86_64-w64-mingw32-gcc"
+          export CXX="x86_64-w64-mingw32-g++"
 
           CGO_ENABLED=1 \
           GOOS=windows \
-          GOARCH=${{ matrix.arch }} \
+          GOARCH=amd64 \
           go build -v \
             -buildmode=c-shared \
             -tags="${BUILD_TAGS}" \
@@ -102,7 +93,7 @@ jobs:
         shell: bash
         run: |
           cd export
-          powershell -Command "Compress-Archive -Path liboc.dll,liboc.h -DestinationPath ../liboc-windows-${{ matrix.arch }}-${{ inputs.version }}.zip"
+          powershell -Command "Compress-Archive -Path liboc.dll,liboc.h -DestinationPath ../liboc-windows-amd64-${{ inputs.version }}.zip"
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
@@ -113,13 +104,13 @@ jobs:
           prerelease: false
           overwrite_files: true
           files: |
-            liboc-windows-${{ matrix.arch }}-${{ inputs.version }}.zip
+            liboc-windows-amd64-${{ inputs.version }}.zip
           body: |
             ## Windows Library for ${{ inputs.version }}
 
             ### Build Configuration
             - **Tags**: `${{ env.BUILD_TAGS }}`
-            - **Architecture**: ${{ matrix.arch }}
+            - **Architecture**: amd64
             - **Format**: C shared library (DLL)
 
             ### Installation

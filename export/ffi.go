@@ -236,7 +236,7 @@ func NewService(configContent *C.char, platformInterface *C.PlatformInterface) C
 	serviceID := nextServiceID
 	nextServiceID++
 	serviceRegistry.Store(serviceID, service)
-	platformRegistry.Store(serviceID, platformCopy)  // Store the heap copy, not the stack pointer
+	platformRegistry.Store(serviceID, platformCopy)
 	serviceMutex.Unlock()
 	return C.int64_t(serviceID)
 }
