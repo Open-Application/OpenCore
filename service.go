@@ -56,6 +56,12 @@ func NewService(configContent string, platformInterface PlatformInterface) (*Box
 		cancel()
 		return nil, E.Cause(err, "create service")
 	}
+
+	networkManager := service.FromContext[adapter.NetworkManager](ctx)
+	if networkManager != nil {
+		networkManager.UpdateInterfaces()
+	}
+
 	debug.FreeOSMemory()
 	return &BoxService{
 		ctx:                   ctx,

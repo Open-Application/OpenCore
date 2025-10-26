@@ -57,6 +57,30 @@ func (w *platformInterfaceWrapper) OpenTun(options *tun.Options, platformOptions
 	if len(options.IncludeAndroidUser) > 0 {
 		return nil, E.New("platform: unsupported android_user option")
 	}
+
+	if runtime.GOOS == "windows" {
+		options.Name = "OpenApp-TUN"
+		w.myTunName = options.Name
+
+		routeRanges, err := options.BuildAutoRouteRanges(true)
+		if err != nil {
+			return nil, err
+		}
+
+		if options.InterfaceMonitor != nil {
+			options.InterfaceMonitor.RegisterMyInterface(options.Name)
+		}
+
+		tunDevice, err := tun.New(*options)
+		if err != nil {
+			return nil, E.Cause(err, "failed to create Windows TUN device")
+		}
+
+		_, _ = w.iif.OpenTun(&tunOptions{options, routeRanges, platformOptions})
+
+		return tunDevice, nil
+	}
+
 	routeRanges, err := options.BuildAutoRouteRanges(true)
 	if err != nil {
 		return nil, err
@@ -65,6 +89,7 @@ func (w *platformInterfaceWrapper) OpenTun(options *tun.Options, platformOptions
 	if err != nil {
 		return nil, err
 	}
+
 	options.Name, err = getTunnelName(tunFd)
 	if err != nil {
 		return nil, E.Cause(err, "query tun name")
@@ -178,3 +203,4 @@ func (w *platformInterfaceWrapper) WriteMessage(level log.Level, message string)
 func (w *platformInterfaceWrapper) SendNotification(notification *platform.Notification) error {
 	return w.iif.SendNotification((*Notification)(notification))
 }
+
