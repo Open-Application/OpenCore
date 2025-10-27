@@ -459,7 +459,7 @@ func getWindowsNetworkInterfaces() ([]*liboc.NetworkInterface, error) {
 		} else if iface.Name == "Ethernet" {
 			interfaceType = int32(liboc.InterfaceTypeEthernet)
 		}
-		dnsServers := []string{"8.8.8.8", "8.8.4.4", "1.1.1.1"}
+		dnsServers := []string{"8.8.8.8", "1.1.1.1", "119.29.29.29", "223.5.5.5"}
 		netInterface := &liboc.NetworkInterface{
 			Index:     int32(iface.Index),
 			MTU:       int32(iface.MTU),
