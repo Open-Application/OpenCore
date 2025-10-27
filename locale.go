@@ -13,8 +13,8 @@ type Locale struct {
 
 var defaultLocal = &Locale{
 	Locale:                  "en_US",
-	DeprecatedMessage:       "%s is deprecated in sing-box %s and will be removed in sing-box %s please checkout documentation for migration.",
-	DeprecatedMessageNoLink: "%s is deprecated in sing-box %s and will be removed in sing-box %s.",
+	DeprecatedMessage:       "%s is deprecated in liboc %s and will be removed in liboc %s please checkout documentation for migration.",
+	DeprecatedMessageNoLink: "%s is deprecated in liboc %s and will be removed in liboc %s.",
 }
 
 func Current() *Locale {
