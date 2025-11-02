@@ -22,7 +22,7 @@ on:
 
 jobs:
   build-android:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -66,8 +66,8 @@ jobs:
 
       - name: Compress Android library
         run: |
-          tar -czf liboc-android-universal-${{ inputs.version }}.tar.gz ./liboc.aar
-          echo "ASSET_PATH=$(pwd)/liboc-android-universal-${{ inputs.version }}.tar.gz" >> $GITHUB_ENV
+          zip -r liboc-android-universal-${{ inputs.version }}.zip ./liboc.aar
+          echo "ASSET_PATH=$(pwd)/liboc-android-universal-${{ inputs.version }}.zip" >> $GITHUB_ENV
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
@@ -130,8 +130,8 @@ jobs:
 
       - name: Compress xcframework
         run: |
-          tar -czf liboc-apple-universal-${{ inputs.version }}.tar.gz ./Liboc.xcframework
-          echo "ASSET_PATH=$(pwd)/liboc-apple-universal-${{ inputs.version }}.tar.gz" >> $GITHUB_ENV
+          zip -r liboc-apple-universal-${{ inputs.version }}.zip ./Liboc.xcframework
+          echo "ASSET_PATH=$(pwd)/liboc-apple-universal-${{ inputs.version }}.zip" >> $GITHUB_ENV
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
