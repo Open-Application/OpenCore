@@ -39,6 +39,7 @@ jobs:
           install: >-
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-tools-git
+            tar
 
       - name: Set build environment
         shell: bash
@@ -81,7 +82,7 @@ jobs:
           cd export
           gendef liboc.dll
           dlltool -d liboc.def -D liboc.dll -l liboc.lib
-          powershell -Command "Compress-Archive -Path liboc.dll,liboc.h,liboc.lib -DestinationPath ../liboc-windows-amd64-${{ inputs.version }}.zip"
+          tar -czf ../liboc-windows-amd64-${{ inputs.version }}.tar.gz liboc.dll liboc.h liboc.lib
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
@@ -92,7 +93,7 @@ jobs:
           prerelease: false
           overwrite_files: true
           files: |
-            liboc-windows-amd64-${{ inputs.version }}.zip
+            liboc-windows-amd64-${{ inputs.version }}.tar.gz
           body: |
             ## Windows Library for ${{ inputs.version }}
 
@@ -102,4 +103,4 @@ jobs:
             - **Format**: C shared library (DLL)
 
             ### Installation
-            Download and extract the zip file to get liboc.dll, liboc.h, and liboc.lib
+            Download and extract the tar.gz file to get liboc.dll, liboc.h, and liboc.lib
