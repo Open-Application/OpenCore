@@ -60,7 +60,7 @@ jobs:
             -javapkg=io.rootcorporation \
             -o liboc.aar \
             -trimpath \
-            -ldflags "-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0" \
+            -ldflags "-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0 -Wl,-z,max-page-size=16384" \
             -tags "${BUILD_TAGS}" \
             .
 
@@ -124,7 +124,7 @@ jobs:
             -iosversion 13.0 \
             -o Liboc.xcframework \
             -trimpath \
-            -ldflags "-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0" \
+            -ldflags "-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0 -Wl,-z,max-page-size=16384" \
             -tags "${BUILD_TAGS}" \
             .
 
