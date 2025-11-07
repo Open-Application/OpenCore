@@ -61,7 +61,7 @@ jobs:
           go mod tidy
           cd export
 
-          LDFLAGS="-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0 -extldflags '-Wl,-z,max-page-size=16384'"
+          LDFLAGS="-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0 -extldflags '-Wl,--section-alignment,0x4000'"
 
           export CC="x86_64-w64-mingw32-gcc"
           export CXX="x86_64-w64-mingw32-g++"
