@@ -49,6 +49,10 @@ jobs:
           echo "BUILD_TAGS=${TAGS}" >> "${GITHUB_ENV}"
           echo "BUILD_VERSION=${{ inputs.version }}" >> "${GITHUB_ENV}"
 
+      - name: Display Go environment
+        shell: bash
+        run: go env
+
       - name: Build Windows amd64 DLL
         shell: bash
         run: |
@@ -57,7 +61,7 @@ jobs:
           go mod tidy
           cd export
 
-          LDFLAGS="-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0 -Wl,-z,max-page-size=16384"
+          LDFLAGS="-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0 -extldflags '-Wl,-z,max-page-size=16384'"
 
           export CC="x86_64-w64-mingw32-gcc"
           export CXX="x86_64-w64-mingw32-g++"

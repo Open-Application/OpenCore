@@ -52,6 +52,9 @@ jobs:
           go get golang.org/x/mobile/bind
           gomobile init
 
+      - name: Display Go environment
+        run: go env
+
       - name: Build Android library
         run: |
           gomobile bind -v \
@@ -60,7 +63,7 @@ jobs:
             -javapkg=io.rootcorporation \
             -o liboc.aar \
             -trimpath \
-            -ldflags "-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0 -Wl,-z,max-page-size=16384" \
+            -ldflags "-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0 -extldflags '-Wl,-z,max-page-size=16384'" \
             -tags "${BUILD_TAGS}" \
             .
 
@@ -117,6 +120,9 @@ jobs:
           go get golang.org/x/mobile/bind
           gomobile init
 
+      - name: Display Go environment
+        run: go env
+
       - name: Build iOS/macOS xcframework
         run: |
           gomobile bind -v \
@@ -124,7 +130,7 @@ jobs:
             -iosversion 13.0 \
             -o Liboc.xcframework \
             -trimpath \
-            -ldflags "-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0 -Wl,-z,max-page-size=16384" \
+            -ldflags "-X github.com/sagernet/sing-box/constant.Version=$BUILD_VERSION -s -w -buildid= -checklinkname=0 -extldflags '-Wl,-z,max-page-size=16384'" \
             -tags "${BUILD_TAGS}" \
             .
 
