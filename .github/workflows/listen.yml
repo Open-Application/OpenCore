@@ -24,7 +24,7 @@ jobs:
       version: ${{ steps.check-releases.outputs.latest }}
     steps:
       - name: Checkout current repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Restore previous release version
         id: cache-release
