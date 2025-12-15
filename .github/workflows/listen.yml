@@ -28,7 +28,7 @@ jobs:
 
       - name: Restore previous release version
         id: cache-release
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ~/.upstream-cache
           key: upstream-release-${{ runner.os }}-${{ github.run_id }}
@@ -89,7 +89,7 @@ jobs:
 
       - name: Save updated cache
         if: steps.check-releases.outputs.updated == 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: ~/.upstream-cache
           key: upstream-release-${{ runner.os }}-${{ github.run_id }}
